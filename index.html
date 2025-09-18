@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HW3 Problem 2</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [
+            ["$", "$"],
+            ["\\(", "\\)"]
+          ],
+          displayMath: [
+            ["$$", "$$"],
+            ["\\[", "\\]"]
+          ]
+        },
+        options: {
+          renderActions: {
+            addMenu: [0, "", ""]
+          }
+        }
+      }
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+      /* Use Inter font for a clean, modern look */
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap");
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f3f4f6;
+      }
+      input::-webkit-outer-spin-button,
+      input::-webkit-inner-spin-button {
+        /* display: none; <- Crashes Chrome on hover */
+        -webkit-appearance: none;
+        margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+      }
+      .mainBody {
+        display: flex; /* 1. Makes the container a flex item */
+        flex-direction: column; /* 2. Stacks children vertically */
+        align-items: center; /* 3. Centers children horizontally */
+      }
+
+      /* Optional: To add space between the canvas and the button */
+      .center-button {
+        margin-top: 1rem;
+      }
+      .canvas-container {
+        position: relative;
+        width: 100%;
+        padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        margin-top: 1rem;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      }
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #fff; /* White background to match the original */
+      }
+      .message-box {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 1.5rem;
+        background-color: #fff;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        z-index: 1000;
+      }
+      .highlight {
+        background-color: rgba(255, 230, 0, 0.5);
+      }
+      .highlight-border {
+        border: 2px solid yellow;
+      }
+      .red-text {
+        color: red;
+      }
+      .black-text {
+        color: black;
+      }
+      .center-button {
+        display: block; /* Makes the button a block-level element */
+        margin: 0 auto; /* Centers the block horizontally */
+      }
+      .matrices-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+      }
+
+      .matrix-section {
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 4px solid #3498db;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      }
+
+      .matrix-section h3 {
+        margin-top: 0;
+        color: #2c3e50;
+        text-align: center;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .controls label {
+        font-weight: bold;
+        color: #555;
+      }
+
+      .controls input[type="number"] {
+        width: 20px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      /* Styling for the 4x4 matrix */
+      .matrix-4x4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      /* Common cell styling for both matrix sizes */
+      .matrix-4x4 input {
+        width: 200px;
+        height: 60px;
+        text-align: center;
+        border: 2px solid #bdc3c7;
+        border-radius: 5px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+      }
+
+      .matrix-4x4 input,
+      .dynamic-matrix input {
+        padding: 5px;
+      }
+      /* Focus state for input cells */
+      input:focus {
+        border-color: #3498db;
+        outline: none;
+        box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+      }
+
+      /* Styling for display cells */
+      .display-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        font-weight: bold;
+        color: #2c3e50;
+        border-color: #34495e;
+      }
+
+      /* Error state styling */
+      .error {
+        background-color: #ffebee !important;
+        color: #c62828 !important;
+        border-color: #e53935 !important;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body class="p-6 md:p-12">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">HW3 Problem 2</h1>
+	<h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Compute Stiffness Matrix in the Global Coordinates System</h1>
+    <div class="w-full max-w-md mx-auto my-8">
+      <div id="name-section" class="flex items-center gap-2 p-2 bg-white rounded shadow">
+        <input type="text" id="username" placeholder="Your name" class="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 transition w-1/2 text-center text-sm" />
+        <button id="submitName" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition text-sm font-medium">Submit</button>
+        <div id="score1" class="score ml-8 text-center text-base font-medium text-green-700 rounded py-1">Score: 0</div>
+      </div>
+    </div>
+    <div class="mainBody">
+      <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
+        <h2 class="pb-4">Consider a rods connecting the following nodes:</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-6">
+          <div>
+            <label for="x1" class="block text-sm font-medium text-gray-700">x1, ft</label>
+            <input type="number" id="x1" min="-400" max="400" readonly class="bg-gray-100 mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+          </div>
+          <div>
+            <label for="y1" class="block text-sm font-medium text-gray-700">y1, ft</label>
+            <input type="number" id="y1" min="-400" max="400" readonly class="bg-gray-100 mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-6">
+          <div>
+            <label for="x2" class="block text-sm font-medium text-gray-700">x2, ft</label>
+            <input type="number" id="x2" readonly min="10" max="400" class="bg-gray-100 mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+          </div>
+          <div>
+            <label for="y2" class="block text-sm font-medium text-gray-700">y2, ft</label>
+            <input type="number" id="y2" readonly min="10" max="400" class="bg-gray-100 mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+          </div>
+        </div>
+        <h2 id="properties" class="mb-4 py-4">The rod has the following material properties</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-6">
+          <div>
+            <label for="Elmod" class="block text-sm font-medium text-gray-700">E (psi)</label>
+            <input type="number" id="Elmod" readonly value="1000" class="bg-gray-100 mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+          </div>
+          <div>
+            <label for="Area" class="block text-sm font-medium text-gray-700">Area (in^2)</label>
+            <input type="number" id="Area" readonly value="2000" class="bg-gray-100 mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150" />
+          </div>
+          <button id="drawButton" class="hidden w-full bg-white-600 hover:bg-white-700 text-white font-semibold py-2 px-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150">Draw Figure</button>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="drawingCanvas" width="700" height="400" style="border: 1px solid #ccc"></canvas>
+        </div>
+      </div>
+
+      <div id="rodStiffnessDiv" class="flex flex-col" style="display: none">
+        <label id="kkLabel" for="kk" class="mb-1 mt-8 font-medium text-gray-700">Rod stiffness</label>
+        <input type="number" id="kk" value="0" step="any" class="bg-white border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      </div>
+      <div id="rodStiffDivAnalysis" style="display: none"></div>
+
+      <div id="sincos" class="flex flex-col items-center gap-4 mb-6" style="display: none">
+        <label id="scLabel" class="text-base font-regular text-gray-800 text-center pt-8"><br /><br />II. Enter sin and cos of the local x' axis with at least 4 decimal places.</label>
+        <div class="flex flex-row gap-x-4">
+          <div class="flex flex-col items-center">
+            <label for="co" class="text-sm font-medium text-gray-700">cos</label>
+            <input type="number" id="co" min="-1" max="1" class="bg-white mt-1 w-36 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+          </div>
+
+          <div class="flex flex-col items-center">
+            <label for="si" class="text-sm font-medium text-gray-700">sin</label>
+            <input type="number" id="si" min="-1" max="1" class="bg-white mt-1 w-36 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+          </div>
+        </div>
+      </div>
+
+      <div id="elementStiff" class="h-full flex justify-center w-full">
+        <div id="elementStiff2" class="flex flex-col items-center w-3/4">
+          <label id="stMat" style="display: none" class="text-sm font-semibold text-gray-800 text-center mb-8"><br /><br />Enter Stiffness Matrix with at least one decimal places.</label>
+          <div class="matrix-4x4" id="userMatrix"></div>
+          <label id="ErrStMat" style="display: none" class="text-sm font-semibold text-gray-800 text-center"><br /><br /></label>
+        </div>
+      </div>
+      <button id="solutionButton" class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150">Start</button>
+    </div>
+
+    <script>
+      const iSolutionStiff = 1
+      const iSolutionSinCos = 1
+      const iSolutionStiffMatrix = 1
+
+      const kkLabel = document.getElementById("kkLabel")
+      const scLabel = document.getElementById("scLabel")
+      const rodStiffDivAnalysis = document.getElementById("rodStiffDivAnalysis")
+      const stMat = document.getElementById("stMat")
+      const ErrStMat = document.getElementById("ErrStMat")
+      const solutionButton = document.getElementById("solutionButton")
+
+      // Name submission functionality
+      document.getElementById("submitName").addEventListener("click", function () {
+        const nameInput = document.getElementById("username")
+        const submitButton = document.getElementById("submitName")
+
+        if (nameInput.value.trim() === "") {
+          alert("Please enter your name before submitting.")
+          return
+        }
+
+        nameInput.readOnly = true
+        submitButton.disabled = true
+        submitButton.classList.add("hidden")
+        nameInput.classList.add("bg-gray-100")
+      })
+
+      const iScore = 1
+      const scoreElement = document.getElementById("score1")
+      let score1 = 0
+      let score01 = 0
+
+      // Check if the element exists and if the score is 0
+      if (scoreElement && iScore === 0) {
+        // If the condition is true, hide the element
+        scoreElement.style.display = "none"
+      }
+
+      let elementStiffnessMatrix = [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+      ]
+
+      function getRandomInteger(min, max) {
+        /**
+         * Generates a random integer between min and max (inclusive).
+         * @param {number} min - The minimum value (inclusive).
+         * @param {number} max - The maximum value (inclusive).
+         * @returns {number} A random integer.
+         */
+        return Math.floor(Math.random() * (max - min + 1)) + min
+      }
+
+      document.getElementById("x1").value = getRandomInteger(0, 440) - 220
+      document.getElementById("x2").value = getRandomInteger(0, 440) - 220
+      document.getElementById("y1").value = getRandomInteger(0, 220) - 110
+      document.getElementById("y2").value = getRandomInteger(0, 220) - 110
+
+      let iStep = 0
+      let iCorrect = 1
+
+      const lengthUnitCorr = 12
+      const areaUnitCorr = 1
+      const elastichUnitCorr = 1
+      const x1 = parseFloat(document.getElementById("x1").value)
+      const x2 = parseFloat(document.getElementById("x2").value)
+      const y1 = parseFloat(document.getElementById("y1").value)
+      const y2 = parseFloat(document.getElementById("y2").value)
+      const elmod = elastichUnitCorr * parseFloat(document.getElementById("Elmod").value)
+      const area = areaUnitCorr * parseFloat(document.getElementById("Area").value)
+      const length = lengthUnitCorr * Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
+      const rad = 10
+
+      const div = document.getElementById("rodStiffnessDiv")
+      const div21 = document.getElementById("rodStiffDivAnalysis")
+      const div2 = document.getElementById("sincos")
+      const div3 = document.getElementById("elementStiff")
+
+      drawFigure(x1, y1, x2, y2, rad)
+      const sk = (elmod * area) / length
+      const skToleratance = 0.1
+      const si = (y2 - y1) / length
+      const co = (x2 - x1) / length
+      const siToleratance = 0.001
+      const toleranceMatrixDifference = 1
+
+      elementStiffnessMatrix[0][0] = sk * co * co
+      elementStiffnessMatrix[0][1] = sk * co * si
+      elementStiffnessMatrix[0][2] = -sk * co * co
+      elementStiffnessMatrix[0][3] = -sk * co * si
+      elementStiffnessMatrix[1][0] = sk * co * si
+      elementStiffnessMatrix[1][1] = sk * si * si
+      elementStiffnessMatrix[1][2] = -sk * co * si
+      elementStiffnessMatrix[1][3] = -sk * si * si
+      elementStiffnessMatrix[2][0] = -sk * co * co
+      elementStiffnessMatrix[2][1] = -sk * co * si
+      elementStiffnessMatrix[2][2] = sk * co * co
+      elementStiffnessMatrix[2][3] = sk * co * si
+      elementStiffnessMatrix[3][0] = -sk * co * si
+      elementStiffnessMatrix[3][1] = -sk * si * si
+      elementStiffnessMatrix[3][2] = sk * co * si
+      elementStiffnessMatrix[3][3] = sk * si * si
+
+      solutionButton.addEventListener("click", () => {
+        nextStep(iStep, iCorrect)
+        updateScore1()
+      })
+
+      function nextStep() {
+        /* console.log(sk)
+        console.log("iStep")
+        console.log(iStep)
+        console.log("iSolutionStiff: ", iSolutionStiff) */
+
+        let icorr1 = 0
+        let icorr2 = 0
+        switch (iStep) {
+          case 0:
+            if (iSolutionStiff === 0) {
+              kkLabel.textContent = "I. Enter rod stiffness with at least two decimal places (lb/in)."
+              score1 = score01
+              if (iCorrect === 1) {
+                iCorrect = 0
+                solutionButton.textContent = "Enter"
+                div.style.display = "flex"
+              } else {
+                const skAnswer = parseFloat(document.getElementById("kk").value)
+                if (isNaN(skAnswer) || document.getElementById("kk").value.trim() === "") {
+                  kkLabel.textContent = "Please provide a correct input for rod stiffness."
+                  solutionButton.textContent = "Correct your answer"
+                } else {
+                  if (Math.abs(sk - skAnswer) < skToleratance) {
+                    solutionButton.textContent = "Next Step"
+                    //console.log(Math.abs(sk - skAnswer), skToleratance)
+                    iCorrect = 1
+                    document.getElementById("rodStiffnessDiv").style.color = "black"
+                    iStep = iStep + 1
+                    score1 = score01 + 1
+                    score01 = 1
+                  } else {
+                    document.getElementById("rodStiffnessDiv").style.color = "red"
+                    solutionButton.textContent = "Correct your answer"
+                  }
+                }
+                //console.log(skAnswer)
+              }
+            } else {
+              solutionButton.textContent = "Next Step"
+              div21.style.display = "flex"
+              div21.style.flexDirection = "column"
+              rodStiffDivAnalysis.innerHTML = `
+              <p class="text-sm text-gray-700">
+                <span class="font-semibold">Length,in:</span><br>
+                $L = \\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2} = ${lengthUnitCorr} \\sqrt{(${x2} - ${x1})^2 + (${y2} - ${y1})^2} = ${length.toFixed(2)}$ in
+              </p>
+			    <p class="text-sm text-gray-700">
+                <span class="font-semibold">Stiffness:</span><br>
+                $k = E*A/L = ${elmod} *${area} /${length.toFixed(2)}  = ${sk.toFixed(2)}$ lb/in
+              </p>
+            `
+              MathJax.typesetPromise([rodStiffDivAnalysis])
+              iStep = iStep + 1
+              score1 = score01 + 1
+              score01 = 1
+              solutionButton.textContent = "Next Step"
+            }
+            //console.log("iStep0 exit  ", iStep)
+            break
+
+          case 1:
+            if (iSolutionSinCos === 0) {
+              scLabel.textContent = "II. Enter sin and cos of the local x' axis with at least 4 decimal places."
+              /* console.log("si ", si)
+              console.log(co) */
+              if (iCorrect === 1) {
+                iCorrect = 0
+                solutionButton.textContent = "Enter"
+                div2.style.display = "flex"
+              } else {
+                const siAnswer = parseFloat(document.getElementById("si").value)
+                const coAnswer = parseFloat(document.getElementById("co").value)
+                /* console.log(si)
+                console.log(co) */
+                if (Math.abs(si - siAnswer) < siToleratance) {
+                  icorr1 = 1
+                  document.getElementById("si").style.color = "black"
+                } else {
+                  document.getElementById("si").style.color = "red"
+                  icorr1 = 0
+                }
+                if (Math.abs(co - coAnswer) < siToleratance) {
+                  icorr2 = 1
+                  document.getElementById("co").style.color = "black"
+                } else {
+                  document.getElementById("co").style.color = "red"
+                  icorr2 = 0
+                }
+              }
+              score1 = score01 + icorr1 + icorr2
+              iCorrect = icorr1 * icorr2
+              if (iCorrect === 1) {
+                iStep = iStep + 1
+                score01 = score1
+                solutionButton.textContent = "Next Step"
+              }
+              /* console.log(elementStiffnessMatrix)
+              console.log("iStep1")
+              console.log(iStep) */
+            } else {
+              //console.log("here")
+              score1 = score01 + 2
+              score01 = score1
+              div21.style.display = "flex"
+              div21.style.flexDirection = "column"
+              rodStiffDivAnalysis.insertAdjacentHTML(
+                "beforeend",
+                `
+                <p class="text-sm text-gray-700"><br>
+                    <span class="font-semibold">sin and cos of the local x' axis:</span><br>
+                    $sin(\\theta) = \\frac{y_2 - y_1}{L} = \\frac{${y2} - ${y1}}{${length.toFixed(2)}} = ${si.toFixed(2)}$<br>
+                    $cos(\\theta) = \\frac{x_2 - x_1}{L} = \\frac{${x2} - ${x1}}{${length.toFixed(2)}} = ${co.toFixed(2)}$
+                </p>
+            `
+              )
+
+              MathJax.typesetPromise([rodStiffDivAnalysis])
+              iStep = iStep + 1
+            }
+            break
+
+          case 2:
+            //console.log("case2")
+            if (iSolutionStiffMatrix === 0) {
+              if (iCorrect === 1) {
+                solutionButton.textContent = "Enter"
+                iCorrect = 0
+                for (let i = 0; i < 4; i++) {
+                  for (let j = 0; j < 4; j++) {
+                    //console.log(i + 1, "  ", j + 1, "  ", elementStiffnessMatrix[i][j])
+                    //console.log(iCorrect)
+                  }
+                }
+                stMat.textContent = "Enter Stiffness Matrix elements with at least one decimal placess (lb/in)"
+                div3.style.display = "flex"
+                createUserInputMatrix()
+              } else {
+                iCorrect = compareAndScoreMatrices("userMatrix", elementStiffnessMatrix, toleranceMatrixDifference)
+                score1 = score01 + score1
+              }
+            } else {
+              stMat.textContent = "Stiffness Matrix (lb/ln)."
+              div3.style.display = "flex"
+              createStiffMatrixOutput()
+              ErrStMat.style.display = "flex"
+              ErrStMat.textContent = "Great job!"
+              ErrStMat.style.color = "green"
+              solutionButton.style.display = "none"
+              score1 = 0
+            }
+            break
+
+          default:
+          //console.log("Unknown fruit")
+        }
+      }
+
+      function createUserInputMatrix() {
+        const container = document.getElementById("userMatrix")
+        container.innerHTML = ""
+
+        for (let i = 0; i < 4; i++) {
+          for (let j = 0; j < 4; j++) {
+            const input = document.createElement("input")
+            stMat.style.display = "flex" // This line will make the label visible
+            div3.style.display = "flex"
+            input.type = "number"
+            input.step = "any"
+            input.id = `user_${i}_${j}`
+            input.placeholder = "0"
+            container.appendChild(input)
+          }
+        }
+      }
+
+      function compareAndScoreMatrices(userMatrixId, correctMatrix, toleranceMatrixDifference) {
+        const userMatrixContainer = document.getElementById(userMatrixId)
+        let correctElementsCount = 0
+        let allCorrect = true
+        let allValues = true
+        //console.log("compareAndScoreMatrices")
+
+        for (let i = 0; i < 4; i++) {
+          for (let j = 0; j < 4; j++) {
+            const inputElement = userMatrixContainer.querySelector(`#user_${i}_${j}`)
+            const userValue = parseFloat(inputElement.value)
+            const correctValue = correctMatrix[i][j]
+            inputElement.classList.remove("red-text")
+
+            if (isNaN(userValue)) {
+              allValues = false
+              allCorrect = false
+            }
+            if (Math.abs(userValue - correctValue) > toleranceMatrixDifference) {
+              // If the difference is too large, make the font color red
+              inputElement.style.color = "red"
+              allCorrect = false
+            } else {
+              // If the value is correct, ensure the font is black
+              inputElement.style.color = "black"
+              correctElementsCount++
+            }
+          }
+        }
+        score1 = correctElementsCount
+        if (allCorrect) {
+          iCorrect = 1
+          ErrStMat.style.display = "flex"
+          ErrStMat.textContent = "Great job!"
+          ErrStMat.style.color = "green"
+          solutionButton.style.display = "none"
+          for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+              const inputElement = userMatrixContainer.querySelector(`#user_${i}_${j}`)
+              inputElement.readOnly = true // Makes the input field non-editable
+            }
+          }
+        } else {
+          iCorrect = 0
+          if (!allValues) {
+            score1 = 0
+            ErrStMat.style.display = "flex"
+            ErrStMat.textContent = "Some values in the Global Stiffness Matrix are missing. Please complete the Matrix."
+            ErrStMat.style.color = "red"
+          } else {
+            ErrStMat.style.display = "flex"
+            ErrStMat.textContent = "Some values in the Global Stiffness Matrix are incorrect. Please correct the highlighted entries."
+            ErrStMat.style.color = "red"
+          }
+        }
+        //console.log("score1", score1)
+        return iCorrect
+      }
+
+      function drawAxes(ctx, width, height, step = 50) {
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 1
+        ctx.font = "12px Arial"
+        ctx.fillStyle = "black"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "top"
+
+        const midX = width / 2
+        const midY = height / 2
+
+        // Draw X-axis
+        ctx.beginPath()
+        ctx.moveTo(0, midY)
+        ctx.lineTo(width, midY)
+        ctx.stroke()
+
+        // Draw Y-axis
+        ctx.beginPath()
+        ctx.moveTo(midX, 0)
+        ctx.lineTo(midX, height)
+        ctx.stroke()
+
+        // Draw ticks and labels
+        for (let x = midX; x < width; x += step) {
+          ctx.beginPath()
+          ctx.moveTo(x, midY - 5)
+          ctx.lineTo(x, midY + 5)
+          ctx.stroke()
+          if (x !== midX) ctx.fillText(x - midX, x, midY + 8)
+        }
+        for (let x = midX; x > 0; x -= step) {
+          ctx.beginPath()
+          ctx.moveTo(x, midY - 5)
+          ctx.lineTo(x, midY + 5)
+          ctx.stroke()
+          if (x !== midX) ctx.fillText(x - midX, x, midY + 8)
+        }
+
+        ctx.textAlign = "right"
+        ctx.textBaseline = "middle"
+        for (let y = midY; y < height; y += step) {
+          ctx.beginPath()
+          ctx.moveTo(midX - 5, y)
+          ctx.lineTo(midX + 5, y)
+          ctx.stroke()
+          if (y !== midY) ctx.fillText(midY - y, midX - 8, y)
+        }
+        for (let y = midY; y > 0; y -= step) {
+          ctx.beginPath()
+          ctx.moveTo(midX - 5, y)
+          ctx.lineTo(midX + 5, y)
+          ctx.stroke()
+          if (y !== midY) ctx.fillText(midY - y, midX - 8, y)
+        }
+
+        // Axis labels
+        ctx.textAlign = "right"
+        ctx.textBaseline = "top"
+        ctx.fillText("x", width - 10, midY + 8)
+
+        ctx.textAlign = "left"
+        ctx.textBaseline = "top"
+        ctx.fillText("y", midX + 8, 10)
+      }
+
+      function drawFigure(x1, y1, x2, y2, r) {
+        const canvas = document.getElementById("drawingCanvas")
+        const ctx = canvas.getContext("2d")
+
+        const width = canvas.width
+        const height = canvas.height
+
+        // Clear
+        ctx.clearRect(0, 0, width, height)
+
+        // Translate coordinate system to put origin at center
+        ctx.save()
+        ctx.translate(width / 2, height / 2)
+        ctx.scale(1, -1) // Flip Y axis so positive is up
+
+        // Draw rectangle + circles
+        const dx = x2 - x1,
+          dy = y2 - y1
+        const dist = Math.hypot(dx, dy)
+        if (dist > 0) {
+          const vx = dx / dist,
+            vy = dy / dist
+          const px = -vy,
+            py = vx
+          const halfSide = 1.5 * r
+          const A = { x: x1 + px * halfSide, y: y1 + py * halfSide }
+          const B = { x: x1 - px * halfSide, y: y1 - py * halfSide }
+          const C = { x: x2 - px * halfSide, y: y2 - py * halfSide }
+          const D = { x: x2 + px * halfSide, y: y2 + py * halfSide }
+
+          ctx.fillStyle = "lightgray"
+          ctx.beginPath()
+          ctx.moveTo(A.x, A.y)
+          ctx.lineTo(B.x, B.y)
+          ctx.lineTo(C.x, C.y)
+          ctx.lineTo(D.x, D.y)
+          ctx.closePath()
+          ctx.fill()
+          ctx.strokeStyle = "gray"
+          ctx.stroke()
+        }
+
+        ctx.fillStyle = "black"
+        ctx.beginPath()
+        ctx.arc(x1, y1, r, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.beginPath()
+        ctx.arc(x2, y2, r, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.restore()
+
+        // Draw axes on top of restored system
+        drawAxes(ctx, width, height, 50)
+      }
+
+      function createStiffMatrixOutput() {
+        const container = document.getElementById("userMatrix")
+        container.innerHTML = ""
+
+        // Assumes elementStiffnessMatrix is a global variable with the correct values
+        for (let i = 0; i < 4; i++) {
+          for (let j = 0; j < 4; j++) {
+            const input = document.createElement("input")
+            stMat.style.display = "flex" // This line will make the label visible
+            div3.style.display = "flex"
+            input.type = "number"
+            input.step = "any"
+            input.id = `user_${i}_${j}`
+            // Set the value from the elementStiffnessMatrix
+            // Use .toFixed(2) to round to two decimal places
+            input.value = elementStiffnessMatrix[i][j].toFixed(2)
+            input.readOnly = true // Makes the input field non-editable
+            input.classList.add("display-cell") // Adds a class for styling read-only cells
+            container.appendChild(input)
+          }
+        }
+      }
+
+      function updateScore1() {
+        document.getElementById("score1").innerHTML = `Score: ${score1}`
+      }
+    </script>
+  </body>
+</html>
